@@ -404,7 +404,8 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
 
   let finalContent = currentMessage?.userInputMessage?.content || "";
 
-  // System prompt → prepend to the user content.
+  // System prompt → prepend to the user content, wrapped so it cannot be
+  // mistaken for literal user-authored text once merged into the Kiro turn.
   if (body.system) {
     let systemText = "";
     if (typeof body.system === "string") {
@@ -412,7 +413,9 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
     } else if (Array.isArray(body.system)) {
       systemText = body.system.map((s) => s.text || "").join("\n");
     }
-    if (systemText) finalContent = `${systemText}\n\n${finalContent}`;
+    if (systemText) {
+      finalContent = `<system-reminder>\n${systemText}\n</system-reminder>\n\n${finalContent}`;
+    }
   }
 
   // Prefix order: thinking_mode tag, timestamp marker, then agentic prompt.

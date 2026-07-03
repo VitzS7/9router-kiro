@@ -268,6 +268,7 @@ function convertMessages(messages, tools, model) {
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
     let role = msg.role;
+    const wasSystem = role === ROLE.SYSTEM;
 
     // Normalize: system/tool -> user
     if (role === ROLE.SYSTEM || role === ROLE.TOOL) {
@@ -338,7 +339,9 @@ function convertMessages(messages, tools, model) {
           content: [{ text: toolContent }]
         });
       } else if (content) {
-        pendingUserContent.push(content);
+        pendingUserContent.push(
+          wasSystem ? `<system-reminder>\n${content}\n</system-reminder>` : content
+        );
       }
     } else if (role === ROLE.ASSISTANT) {
       // Extract text content and tool uses
