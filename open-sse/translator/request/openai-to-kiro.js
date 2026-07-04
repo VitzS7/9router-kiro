@@ -339,10 +339,9 @@ function convertMessages(messages, tools, model) {
           content: [{ text: toolContent }]
         });
       } else if (content) {
-        // Plain separator instead of <system-reminder>: Claude models treat <system-reminder>
-        // as informational-only context that must NOT override behavior — wrong for system prompts.
+        // <instructions> tags: Claude models treat these as authoritative directives.
         pendingUserContent.push(
-          wasSystem ? `[SYSTEM INSTRUCTIONS — follow these directives]\n${content}\n[END SYSTEM INSTRUCTIONS]` : content
+          wasSystem ? `<instructions>\n${content}\n</instructions>` : content
         );
       }
     } else if (role === ROLE.ASSISTANT) {

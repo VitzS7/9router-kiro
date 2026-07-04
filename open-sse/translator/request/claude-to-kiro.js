@@ -404,12 +404,9 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
 
   let finalContent = currentMessage?.userInputMessage?.content || "";
 
-  // System prompt → prepend to the user content.
-  // Kiro merges everything into a single user turn; we use a plain separator so the
-  // model treats the system prompt as authoritative instructions.  We avoid
-  // <system-reminder> tags because Claude models are trained to treat them as
-  // informational-only context that must NOT override behavior — the exact opposite
-  // of what a system prompt needs.
+  // System prompt → send via native systemInstruction field (Kiro/Q API supports it).
+  // Also prepend as <instructions> in user content as fallback for upstreams that ignore it.
+  let systemInstruction = undefined;
   if (body.system) {
     let systemText = "";
     if (typeof body.system === "string") {
@@ -418,7 +415,8 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
       systemText = body.system.map((s) => s.text || "").join("\n");
     }
     if (systemText) {
-      finalContent = `[SYSTEM INSTRUCTIONS — follow these directives]\n${systemText}\n[END SYSTEM INSTRUCTIONS]\n\n${finalContent}`;
+      systemInstruction = systemText;
+      finalContent = `<instructions>\n${systemText}\n</instructions>\n\n${finalContent}`;
     }
   }
 
@@ -430,23 +428,29 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
   if (agentic) prefixParts.push(KIRO_AGENTIC_SYSTEM_PROMPT);
   finalContent = `${prefixParts.join("\n\n")}\n\n${finalContent}`;
 
+  const userInputMessage = {
+    content: finalContent,
+    modelId: upstreamModel,
+    origin: "AI_EDITOR",
+    ...(currentMessage?.userInputMessage?.userInputMessageContext && {
+      userInputMessageContext:
+        currentMessage.userInputMessage.userInputMessageContext,
+    }),
+    ...(currentMessage?.userInputMessage?.images && {
+      images: currentMessage.userInputMessage.images,
+    }),
+  };
+
+  if (systemInstruction) {
+    userInputMessage.systemInstruction = systemInstruction;
+  }
+
   const payload = {
     conversationState: {
       chatTriggerType: "MANUAL",
       conversationId: uuidv4(),
       currentMessage: {
-        userInputMessage: {
-          content: finalContent,
-          modelId: upstreamModel,
-          origin: "AI_EDITOR",
-          ...(currentMessage?.userInputMessage?.userInputMessageContext && {
-            userInputMessageContext:
-              currentMessage.userInputMessage.userInputMessageContext,
-          }),
-          ...(currentMessage?.userInputMessage?.images && {
-            images: currentMessage.userInputMessage.images,
-          }),
-        },
+        userInputMessage,
       },
       history,
     },
