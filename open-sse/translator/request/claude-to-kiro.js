@@ -404,8 +404,9 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
 
   let finalContent = currentMessage?.userInputMessage?.content || "";
 
-  // System prompt → send via native systemInstruction field (Kiro/Q API supports it).
-  // Also prepend as <instructions> in user content as fallback for upstreams that ignore it.
+  // System prompt: pass via native systemInstruction field (Kiro/Q API supports it)
+  // and also prepend as <instructions> in user content as fallback for upstreams
+  // that don't support the native field.
   let systemInstruction = undefined;
   if (body.system) {
     let systemText = "";
