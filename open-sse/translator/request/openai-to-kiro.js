@@ -343,6 +343,7 @@ function convertMessages(messages, tools, model) {
         pendingUserContent.push(
           wasSystem ? `<instructions>\n${content}\n</instructions>` : content
         );
+      }
     } else if (role === ROLE.ASSISTANT) {
       // Extract text content and tool uses
       let textContent = "";
