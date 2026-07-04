@@ -404,8 +404,12 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
 
   let finalContent = currentMessage?.userInputMessage?.content || "";
 
-  // System prompt → prepend to the user content, wrapped so it cannot be
-  // mistaken for literal user-authored text once merged into the Kiro turn.
+  // System prompt → prepend to the user content.
+  // Kiro merges everything into a single user turn; we use a plain separator so the
+  // model treats the system prompt as authoritative instructions.  We avoid
+  // <system-reminder> tags because Claude models are trained to treat them as
+  // informational-only context that must NOT override behavior — the exact opposite
+  // of what a system prompt needs.
   if (body.system) {
     let systemText = "";
     if (typeof body.system === "string") {
@@ -414,7 +418,7 @@ export function claudeToKiroRequest(model, body, stream, credentials) {
       systemText = body.system.map((s) => s.text || "").join("\n");
     }
     if (systemText) {
-      finalContent = `<system-reminder>\n${systemText}\n</system-reminder>\n\n${finalContent}`;
+      finalContent = `[SYSTEM INSTRUCTIONS — follow these directives]\n${systemText}\n[END SYSTEM INSTRUCTIONS]\n\n${finalContent}`;
     }
   }
 
